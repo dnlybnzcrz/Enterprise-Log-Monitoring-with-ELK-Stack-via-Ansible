@@ -1,0 +1,71 @@
+- name: Adding kibana to the RPM repository (CentOS)
+  copy:
+    src: kibana.repo
+    dest: /etc/yum.repos.d/kibana.repo
+    owner: root
+    group: root
+    mode: 777
+  when: ansible_distribution == "CentOS"
+
+- name: Adding Kibana to the APT repository (Ubuntu)
+  copy:
+    src: kibana.repo
+    dest: /etc/apt/sources.list.d/kibana.repo
+    owner: root
+    group: root
+    mode: 777
+  when: ansible_distribution == "Ubuntu"
+
+- name: Install Kibana
+  package:
+    name: kibana
+    state: latest
+
+- name: Updating the repository once again
+  package:
+    name: kibana
+    state: latest
+
+- name: Ensure Kibana is started and enabled at boot
+  service:
+    name: kibana
+    state: started
+    enabled: true
+
+
+- name: Configuring server.port
+  replace:
+    path: /etc/kibana/kibana.yml
+    regexp: '#server.port: 5601'
+    replace: 'server.port: 5601'
+
+- name: Configuring server.hosts
+  replace:
+    path: /etc/kibana/kibana.yml
+    regexp: '#server.hosts: "localhosts"'
+    replace: 'server.hosts: "localhosts"'
+
+- name: Configuring elasticsearch.host
+  replace:
+    path: /etc/kibana/kibana.yml
+    regexp: '#elasticsearch.hosts: ["http://localhosts:9200"]'
+    replace: 'elasticsearch.hosts: ["http://localhosts:9200"]'
+
+- name: Opening port for elasticsearch (CentOS)
+  firewalld:
+    port: 5601/tcp
+    permanent: yes
+    state: enabled
+  when: ansible_distribution == "CentOS"
+
+- name: Opening port for elasticsearch (Ubuntu)
+  ufw:
+    rule: allow
+    port: "5601"
+  when: ansible_distribution == "Ubuntu"
+
+- name: Making sure that Kibana is started and enabled
+  service:
+    name: kibana
+    state: restarted
+    enabled: true

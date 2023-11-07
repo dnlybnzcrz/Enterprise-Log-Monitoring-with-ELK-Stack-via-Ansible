@@ -1,0 +1,43 @@
+- name: Creeating a repo file for Logstash (CentOS)
+  copy:
+    src: logstash.repo
+    dest: /etc/yum.repos.d/logstash.repo
+    owner: root
+    group: root
+    mode: 0777
+  when: ansible_distribution == "CentOS"
+
+- name: Creating a repo file for Logstash (Ubuntu)
+  copy:
+    src: logstash.repo
+    dest: /etc/apt/sources.list.d/logstash.repo
+    owner: root
+    group: root
+    mode: 0777
+  when: ansible_distribution == "Ubuntu"
+
+- name: Installing Logstash
+  package:
+    name: logstash
+    state: latest
+
+- name: Opening port for Logstash (CentOS)
+  become: true
+  firewalld:
+    port: 9600/tcp
+    permanent: true
+    state: enabled
+  when: ansible_distribution == "CentOS"
+
+- name: Opening port for Logstash (Ubuntu)
+  become: true
+  ufw:
+    rule: allow
+    port: "9600"
+  when: ansible_distribution == "Ubuntu"
+
+- name: Making sure that logstash is started and enabled
+  service:
+    name: logstash
+    state: restarted
+    enabled: true
